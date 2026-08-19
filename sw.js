@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    MACININO — calcolatore della macinatura del caffè
-   Copyright © 2026 Istante Labs. Tutti i diritti riservati.
+   Copyright © 2026 Studionodo. Tutti i diritti riservati.
    Autore: [nome e cognome] · macinino.vercel.app · agosto 2026
 
    Opera protetta dal diritto d'autore (L. 633/1941, D.Lgs. 518/1992).
@@ -13,7 +13,7 @@
 
    ⚠️  ALZARE QUESTO NUMERO A OGNI PUBBLICAZIONE.
    Senza, chi ha già aperto l'app continua a vedere la versione vecchia. */
-const CACHE = "macinino-v46";
+const CACHE = "macinino-v47";
 
 const ASSETS = [
   "./", "./index.html", "./app.js", "./manifest.webmanifest",
