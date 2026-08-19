@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<!--
+   MACININO — calcolatore della macinatura del caffè
+   Copyright © 2026 Istante Labs. Tutti i diritti riservati.
+   Autore: [nome e cognome] · macinino.vercel.app · agosto 2026
+
+   Opera protetta dal diritto d'autore (L. 633/1941, D.Lgs. 518/1992).
+   Il codice è leggibile dal browser, come in ogni applicazione web:
+   questo NON ne autorizza la copia, la ridistribuzione né opere
+   derivate. Condizioni complete nel file LICENSE.
+-->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Macinino — Calcolatore grana</title>
+<meta name="description" content="Calcolatore della macinatura del caffè. Funziona offline, nessun account, nessun dato inviato.">
+<meta name="author" content="Istante Labs">
+<meta name="copyright" content="© 2026 Istante Labs — Tutti i diritti riservati">
+<link rel="license" href="LICENSE">
+<meta name="theme-color" content="#16181B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Macinino">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  @font-face{font-family:'Fraunces';font-style:normal;font-weight:100 900;font-display:swap;
+    src:url('fonts/fraunces.woff2') format('woff2');}
+  @font-face{font-family:'Fraunces';font-style:italic;font-weight:100 900;font-display:swap;
+    src:url('fonts/fraunces-italic.woff2') format('woff2');}
+  @font-face{font-family:'Geist Mono';font-style:normal;font-weight:300 500;font-display:swap;
+    src:url('fonts/geist-mono.woff2') format('woff2');}
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    /* Carboncino e osso — cornice acromatica, il colore è riservato al risultato */
+    --bg:#16181B; --panel:#1E2126; --raise:#2A2E34;
+    --fg:#EDE9E1; --mid:#918F87; --faint:#33373C;
+    --r:8px;
+    --amber:#E5A03C;
+    /* Corsa della riduzione: 0 = esteso, 1 = compatto.
+       La pilota lo scorrimento su una soglia FISSA in pixel — mai una
+       percentuale dello scorrimento totale, che dipende a sua volta dalla
+       riduzione e innescherebbe un ciclo. */
+    --t:0;
+    --hero-max:76px; --hero-min:32px;
+    --name-max:17px; --name-min:12.5px;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+
+  /* Lo sfondo va dichiarato anche su html: con esso solo su body, nell'area
+     della barra di navigazione di Android affiora il colore predefinito e
+     compare una riga di stacco lungo il bordo inferiore. */
+  html{-webkit-text-size-adjust:100%;background:var(--bg);
+    overscroll-behavior:none;height:100%;
+    /* Senza questo il browser "ancora" lo scorrimento: quando il blocco in
+       cima si riduce, compensa scorrendo indietro di altrettanto, la
+       riduzione si annulla e la pagina torna in cima da sola. */
+    overflow-anchor:none}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+  button,input{font-family:inherit}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+
+  .app{max-width:390px;margin:0 auto;
+    padding:calc(26px + var(--safe-t)) 26px calc(26px + var(--safe-b))}
+
+
+  /* Il blocco del risultato resta in cima e si riduce scorrendo.
+     Requisiti emersi dalle implementazioni precedenti, tutti necessari:
+     · overflow-anchor:none su html — senza, il browser compensa il
+       ridimensionamento scorrendo indietro e la pagina torna in cima;
+     · la corsa ancorata a una soglia fissa, non allo scorrimento totale;
+     · un limite calcolato perché la riduzione non consumi lo scorrimento
+       che la governa;
+     · la misura fatta una volta per larghezza, mai durante il movimento. */
+  .pinned{position:sticky;top:0;z-index:20;background:var(--bg);
+    padding-top:var(--safe-t)}
+  .pinned::after{content:'';position:absolute;left:0;right:0;top:100%;height:14px;
+    background:linear-gradient(var(--bg),transparent);pointer-events:none}
+
+  /* ── PANNELLO INFORMATIVO ──
+     Centrato invece che in linea: si legge dove lo sguardo già si trova,
+     non spinge giù il contenuto sotto le dita e non gonfia il blocco fisso. */
+  .info-veil{position:fixed;inset:0;z-index:50;background:rgba(10,11,13,.72);
+    display:flex;align-items:center;justify-content:center;padding:22px;
+    animation:veilIn .16s ease-out}
+  @keyframes veilIn{from{opacity:0}to{opacity:1}}
+  .info-card{background:var(--panel);border:1px solid var(--faint);border-radius:14px;
+    max-width:352px;width:100%;max-height:min(76vh,560px);
+    display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 18px 48px rgba(0,0,0,.5);animation:cardIn .2s cubic-bezier(.2,.8,.3,1)}
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.985)}
+                    to{opacity:1;transform:none}}
+  .info-head{display:flex;align-items:flex-start;justify-content:space-between;
+    gap:12px;padding:17px 16px 12px;border-bottom:1px solid var(--faint);flex-shrink:0}
+  .info-titles{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
+  .info-title{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:400;
+    line-height:1.2;color:var(--fg)}
+  .info-x{flex-shrink:0;width:34px;height:34px;margin:-6px -4px 0 0;
+    border:none;background:none;color:var(--mid);font-size:24px;line-height:1;
+    cursor:pointer;font-family:inherit;border-radius:50%;
+    display:flex;align-items:center;justify-content:center}
+  .info-x:active{background:var(--raise);color:var(--fg)}
+  /* Il contenuto scorre dentro la scheda: alcuni pannelli sono lunghi e
+     non devono far crescere il riquadro oltre lo schermo. */
+  .info-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:15px 16px 18px;overscroll-behavior:contain}
+  .info-body{font-size:13.5px;line-height:1.68;color:var(--fg)}
+
+  /* ── PRIMO AVVIO ── */
+  /* Su schermi bassi la prima pagina supera l'altezza disponibile: il
+     contenitore scorre e la scheda si centra da sola quando c'è spazio. */
+  .onb{position:fixed;inset:0;z-index:60;background:var(--bg);
+    display:flex;justify-content:center;padding:24px 26px;
+    overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .onb-card{max-width:340px;width:100%;margin:auto 0}
+  .onb-top{display:flex;justify-content:space-between;align-items:center;
+    gap:12px;margin-bottom:24px}
+  .onb-mark{font-family:'Fraunces',Georgia,serif;font-size:27px;font-weight:400;
+    letter-spacing:-.03em;display:flex;align-items:baseline;gap:6px}
+  .onb-title{font-family:'Fraunces',Georgia,serif;font-size:23px;font-weight:200;
+    line-height:1.25;margin-bottom:14px}
+  .onb-body{font-size:13.5px;color:var(--mid);line-height:1.6;margin-bottom:22px}
+  /* Elenco dei punti: la parte forte in chiaro, il resto sotto voce.
+     Quattro righe brevi si scorrono; un paragrafo unico no. */
+  .onb-list{list-style:none;margin:0 0 22px;padding:0;
+    display:flex;flex-direction:column;gap:11px}
+  .onb-list li{font-size:12.5px;color:var(--mid);line-height:1.55;
+    padding-left:14px;position:relative}
+  .onb-list li::before{content:"";position:absolute;left:0;top:8px;
+    width:5px;height:5px;border-radius:50%;background:var(--amber)}
+  .onb-list b{color:var(--fg);font-weight:400;display:block;margin-bottom:1px}
+  /* Due pallini: dicono quante pagine ci sono e dove sei. */
+  .onb-dots{display:flex;justify-content:center;gap:7px;margin-top:18px}
+  .onb-dots span{width:6px;height:6px;border-radius:50%;background:var(--faint);
+    transition:background .25s}
+  .onb-dots span.on{background:var(--mid)}
+  .onb-back{width:100%;padding:11px;border:none;background:none;color:var(--faint);
+    font-size:11.5px;cursor:pointer;font-family:inherit;margin-top:6px}
+  .onb-input{width:100%;background:var(--panel);border:1px solid var(--faint);
+    border-radius:var(--r);padding:15px 16px;color:var(--fg);font-size:17px;
+    font-family:'Geist Mono',ui-monospace,monospace;margin-bottom:20px}
+  .onb-input:focus{outline:none;border-color:var(--mid)}
+  .onb-go{width:100%;padding:16px;border:1px solid var(--fg);border-radius:26px;
+    background:var(--fg);color:var(--bg);font-size:14px;letter-spacing:.04em;
+    cursor:pointer;font-family:inherit;margin-bottom:12px}
+  .onb-skip{width:100%;padding:13px;border:none;background:none;color:var(--mid);
+    font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline;
+    text-underline-offset:4px;text-decoration-color:var(--faint)}
+
+  /* ── IL RISULTATO: posizione e direzione, non un numero assoluto ── */
+  /* Lo spostamento si riduce insieme al numero: resta leggibile anche
+     compatto, perché è l'informazione che l'utente usa davvero. */
+  .move{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:100;
+    font-size:calc(var(--name-max) - (var(--name-max) - var(--name-min)) * var(--t));
+    margin-bottom:calc(4px * (1 - var(--t)));transition:color .3s}
+  /* Motivi e apprendimento si ritirano per primi: sono contesto, non guida. */
+  .result-notes{max-height:calc(120px * (1 - var(--t)));overflow:hidden;
+    opacity:clamp(0,calc(1 - var(--t) * 1.6),1)}
+  .learned{max-height:calc(40px * (1 - var(--t)));overflow:hidden;
+    opacity:clamp(0,calc(1 - var(--t) * 2.4),1)}
+  /* Il numero è un pulsante: toccandolo si corregge la posizione a mano.
+     Serve quando si gira la manopola senza passare dall'app. */
+  .hero-num{border:none;background:none;padding:0;font-family:inherit;
+    cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+  .hero-num:active{opacity:.6}
+  /* Numero e "i" su una riga sola: il pulsante è display:flex, quindi
+     senza contenitore la "i" andrebbe a capo. */
+  .hero-row{display:flex;align-items:flex-start;gap:2px}
+  .hero-i{margin-top:calc(15px - 6px * var(--t));flex-shrink:0}
+  .hero-num{margin-bottom:calc(8px - 5px * var(--t))}
+  .edit-row{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .edit-input{width:110px;background:var(--panel);border:1px solid var(--fg);
+    border-radius:var(--r);padding:9px 12px;color:var(--fg);
+    font-family:'Fraunces',Georgia,serif;font-weight:100;font-size:34px;
+    line-height:1;text-align:center}
+  .edit-input:focus{outline:none}
+  .edit-unit{font-size:13px;color:var(--mid);font-family:'Geist Mono',ui-monospace,monospace}
+  .edit-x{margin-left:auto;width:38px;height:38px;border:none;background:none;
+    color:var(--mid);font-size:24px;line-height:1;cursor:pointer;font-family:inherit;
+    border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .edit-x:active{background:var(--raise);color:var(--fg)}
+
+  .hero-first{font-family:'Fraunces',Georgia,serif;font-weight:100;font-size:56px;
+    line-height:.9;color:var(--faint);letter-spacing:-.04em;
+    display:flex;align-items:flex-start;gap:4px;margin-bottom:8px}
+  .first-hint{font-size:12.5px;color:var(--mid);line-height:1.6;margin:8px 0 16px}
+  .first-ask{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .first-lbl{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg)}
+  .pos-input{width:88px;background:var(--panel);border:1px solid var(--mid);
+    border-radius:var(--r);padding:11px 12px;color:var(--fg);font-size:17px;
+    font-family:'Geist Mono',ui-monospace,monospace;text-align:center}
+  .pos-input:focus{outline:none;border-color:var(--fg)}
+
+  /* ── INTESTAZIONE ── */
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    margin-bottom:calc(16px - 8px * var(--t))}
+  .brand-wrap{display:flex;flex-direction:column;gap:3px}
+  .brand{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:27px;
+    letter-spacing:-.02em;color:var(--fg);line-height:1;display:flex;align-items:baseline;gap:7px}
+  .brand-mark{flex-shrink:0}
+  .brand-sub{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--mid);white-space:nowrap;
+    height:calc(13px * (1 - var(--t)));overflow:hidden;
+    opacity:clamp(0,calc(1 - var(--t) * 2.4),1)}
+
+  .lang-pill{display:flex;align-items:center;gap:2px;border:1px solid var(--faint);
+    border-radius:20px;padding:4px;flex-shrink:0}
+  .lang-btn{font-size:12px;letter-spacing:.06em;color:var(--mid);background:none;border:none;
+    cursor:pointer;padding:11px 14px;border-radius:20px;transition:all .15s;line-height:1}
+  .lang-btn[aria-pressed="true"]{background:var(--raise);color:var(--fg)}
+
+  /* ── MODALITÀ ── */
+  .mode-seg{display:flex;flex-shrink:0;border:1px solid var(--faint);
+    border-radius:22px;overflow:hidden}
+  .mode-btn{padding:13px 17px;border:none;background:transparent;font-size:12.5px;
+    letter-spacing:.04em;color:var(--mid);cursor:pointer;transition:all .15s;line-height:1}
+  .mode-btn:first-child{border-right:1px solid var(--faint)}
+  .mode-btn[aria-pressed="true"]{background:var(--raise);color:var(--fg)}
+
+  /* ── RISULTATO ── */
+  .hero-num{font-family:'Fraunces',Georgia,serif;font-weight:100;line-height:.88;
+    font-size:calc(var(--hero-max) - (var(--hero-max) - var(--hero-min)) * var(--t));
+    letter-spacing:-.04em;display:flex;align-items:flex-start;gap:4px;
+    margin-bottom:calc(8px - 5px * var(--t));
+    transition:color .4s cubic-bezier(.22,1,.36,1);font-variant-numeric:tabular-nums}
+  .hero-sup{font-family:'Geist Mono',monospace;font-size:11px;font-weight:300;color:var(--mid);
+    padding-top:14px;letter-spacing:normal;display:inline-flex;align-items:center;gap:8px}
+  .result-notes{display:flex;flex-direction:column;gap:5px;min-height:0;
+    margin-bottom:calc(15px - 6px * var(--t))}
+  /* L'apprendimento reso visibile: sotto i motivi, in tono minore, e
+     assente finché non c'è davvero qualcosa da dire. */
+  .learned{font-size:11px;color:var(--faint);letter-spacing:.05em;
+    margin:-9px 0 calc(14px * (1 - var(--t)));line-height:1.5}
+  .note-line{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    display:flex;align-items:baseline;gap:6px;color:var(--fg);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .note-line b{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:17px;
+    letter-spacing:0;line-height:1}
+
+  /* ── SEZIONI ── */
+  .section{margin-bottom:17px}
+  .lbl-row{display:flex;align-items:center;gap:7px;margin-bottom:11px}
+  .lbl{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid)}
+  /* Resta piccolo alla vista ma con un'area attiva di 44px: un bersaglio
+     da 16px è sotto la soglia raccomandata per il tocco. */
+  /* L'anello in osso invece che in grigio: a 4,21:1 il disco non si
+     leggeva come un comando. Il riempimento resta scuro perché lo stato
+     aperto è già l'inversione piena, e deve restare distinguibile. */
+  .info-btn{width:18px;height:18px;border-radius:50%;border:1px solid var(--fg);
+    background:var(--raise);font-size:9.5px;font-weight:500;color:var(--fg);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all .15s;
+    flex-shrink:0;line-height:1;padding:0;position:relative}
+  .info-btn::after{content:'';position:absolute;top:50%;left:50%;
+    width:44px;height:44px;transform:translate(-50%,-50%)}
+  .info-btn[aria-expanded="true"]{border-color:var(--fg);background:var(--fg);color:var(--bg)}
+  /* Richiamo sulla "i" del risultato: al primo avvio il numero è un trattino
+     e l'app può sembrare rotta — quel pannello spiega perché. Un alone che
+     respira, non un lampeggio: il lampeggio si legge come un errore.
+     Si spegne al primo tocco e non torna più.
+     L'alone è in osso come il resto dell'interfaccia: l'ambra codifica
+     l'asse fine→grosso e usarla qui la svuoterebbe di significato. */
+  .info-btn.pulse{animation:respiro 2.1s ease-in-out infinite}
+  @keyframes respiro{
+    0%,100%{box-shadow:0 0 0 0 rgba(237,233,225,.40)}
+    55%    {box-shadow:0 0 0 7px rgba(237,233,225,0)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .info-btn.pulse{animation:none;box-shadow:0 0 0 3px rgba(237,233,225,.24)}
+  }
+
+  @keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .info-card em{color:var(--fg);font-style:normal;font-weight:500}
+  .impact-tag{display:inline-block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 9px;border-radius:20px;border:1px solid var(--faint);color:var(--mid);margin-bottom:10px}
+  .impact-alto{color:var(--fg);border-color:var(--mid)}
+  .info-src{margin-top:14px;padding-top:13px;border-top:1px solid var(--faint);
+    font-size:12px;line-height:1.65;color:var(--mid)}
+  .info-src b{color:var(--fg);font-weight:500}
+
+  /* ── PILLOLE ── */
+  .pills-wrap{position:relative}
+  .pills-wrap::after{content:'';position:absolute;top:0;right:0;bottom:2px;width:32px;
+    background:linear-gradient(to right,transparent,var(--bg));pointer-events:none;
+    opacity:1;transition:opacity .2s}
+  .pills-wrap.at-end::after{opacity:0}
+  .pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;touch-action:pan-x pinch-zoom}
+  .pills::-webkit-scrollbar{display:none}
+  .pill{flex-shrink:0;padding:11px 16px;border-radius:22px;border:1px solid var(--faint);
+    background:transparent;font-size:13.5px;color:var(--mid);cursor:pointer;
+    transition:all .15s;white-space:nowrap}
+  .pill[aria-pressed="true"]{background:var(--raise);border-color:var(--mid);color:var(--fg)}
+
+  /* ── SEGMENTATI ── */
+  /* Sotto il segmentato: che effetto ha la scelta. Senza, la riga di
+     pulsanti non comunica a cosa serve. */
+  .seg-note{font-size:11.5px;color:var(--mid);letter-spacing:.03em;
+    margin-top:8px;line-height:1.5}
+  .seg{display:flex;border:1px solid var(--faint);border-radius:var(--r);overflow:hidden;
+    width:fit-content;max-width:100%}
+  .seg-btn{padding:13px 18px;border:none;border-right:1px solid var(--faint);background:transparent;
+    font-size:13.5px;color:var(--mid);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .seg-btn:last-child{border-right:none}
+  .seg-btn[aria-pressed="true"]{background:var(--raise);color:var(--fg)}
+
+
+  /* ── CONTATORE ──
+     Numero sopra, riga di avanzamento in mezzo, − e + ai due lati.
+     La riga non è interattiva: mostra soltanto dove sei nell'intervallo. */
+  .stp{display:flex;flex-direction:column;gap:9px}
+  .stp-top{display:flex;align-items:baseline;gap:5px}
+  .stp-num{font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:100;
+    color:var(--fg);line-height:1;font-variant-numeric:tabular-nums;min-width:34px}
+  .stp-num.off{color:var(--faint)}
+  .stp-unit{font-size:12px;color:var(--mid)}
+  .stp-hint{font-size:12.5px;color:var(--mid);margin-left:auto;text-align:right}
+
+  .stp-row{display:flex;align-items:center;gap:4px}
+  .shot-grid .stp{gap:7px}
+  .stp-btn{width:46px;height:46px;flex-shrink:0;border-radius:50%;
+    border:1px solid var(--faint);background:var(--panel);color:var(--fg);
+    font-size:21px;line-height:1;cursor:pointer;user-select:none;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s,border-color .12s,opacity .12s;
+    touch-action:none;-webkit-user-select:none}
+  .stp-btn:active:not(:disabled){background:var(--fg);border-color:var(--fg);color:var(--bg)}
+  .stp-btn:disabled{opacity:.3;cursor:default}
+
+  /* Area sensibile alta 46px attorno a una riga sottile: il bersaglio è
+     a norma per il tocco senza che la riga debba essere spessa.
+     L'altezza sta sul contenitore, non sulla riga — mettere il padding
+     sulla riga stessa ne azzerava l'area visibile. */
+  /* Il padding orizzontale crea una zona di sconfinamento ai due capi:
+     toccando oltre l'estremo della riga il valore si ferma al limite,
+     così i due estremi non richiedono di mirare al pixel. */
+  .stp-hit{flex:1;min-width:0;height:46px;display:flex;align-items:center;
+    padding:0 11px;cursor:pointer;touch-action:pan-y}
+  .stp-track{position:relative;width:100%;height:3px;background:var(--faint);
+    border-radius:3px}
+  .stp-fill{height:100%;background:var(--mid);border-radius:3px;position:relative;
+    transition:width .18s cubic-bezier(.22,1,.36,1)}
+  /* Il pomello segnala che la riga è toccabile, oltre a marcare la posizione */
+  /* Fascia bersaglio: la stessa idea della corona colorata sui cronografi
+     da caffè, dove il settore 25–35s marca l'estrazione corretta. Non usa
+     un colore nuovo — è la traccia stessa in tono più chiaro. */
+  .stp-band{position:absolute;top:50%;height:7px;border-radius:4px;
+    transform:translateY(-50%);background:var(--fg);opacity:.28;pointer-events:none}
+
+  .stp-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
+    background:var(--fg);transform:translate(-50%,-50%);pointer-events:none;
+    transition:left .18s cubic-bezier(.22,1,.36,1)}
+  .stp[data-off] .stp-hit{cursor:default}
+  .stp[data-off] .stp-knob{background:var(--faint)}
+
+  .ghost-toggle{margin-top:12px;font-size:12.5px;color:var(--mid);background:none;
+    border:1px solid var(--faint);border-radius:22px;padding:11px 16px;cursor:pointer;transition:all .15s}
+  /* Comando in linea: assolve la stessa funzione del pulsante separato
+     occupando l'altezza di una riga di testo invece di un blocco intero. */
+  /* Testo in osso e sottolineatura in grigio medio: prima erano 4,98:1 e
+     1,35:1, cioè un comando che sembrava una nota a margine. */
+  .inline-toggle{align-self:flex-start;background:none;border:none;padding:8px 0 2px;
+    font-size:12px;color:var(--fg);cursor:pointer;text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;
+    text-decoration-color:var(--mid);transition:text-decoration-color .15s}
+  .inline-toggle:hover{text-decoration-color:var(--fg)}
+  .ghost-toggle[aria-pressed="true"]{background:var(--raise);border-color:var(--mid);color:var(--fg)}
+
+
+  /* ── ACQUA ── */
+  .water-pills{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .wpill{padding:13px 4px;border-radius:var(--r);border:1px solid var(--faint);background:transparent;
+    font-size:11.5px;color:var(--mid);cursor:pointer;transition:all .15s;text-align:center;line-height:1.35}
+  .wpill[aria-pressed="true"]{background:var(--raise);border-color:var(--mid);color:var(--fg)}
+  .wpill span{display:block}
+  .wpill .ppm{font-size:10.5px;color:var(--mid);margin-top:2px}
+
+  .rule{border:none;border-top:1px solid var(--faint);margin:2px 0 16px}
+
+  /* ── FEEDBACK ── */
+  .fb-row{display:flex;gap:8px;margin-top:8px}
+  .fb-btn{flex:1;padding:12px 4px;border-radius:var(--r);border:1px solid var(--faint);
+    background:transparent;color:var(--mid);cursor:pointer;transition:all .12s;
+    display:flex;flex-direction:row;align-items:baseline;justify-content:center;gap:6px}
+  .fb-sign{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:200;
+    line-height:1;color:var(--fg)}
+  .fb-name{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  /* Lampo alla pressione, poi si spegne: è un comando, non uno stato. */
+  .fb-btn:active{background:var(--fg);border-color:var(--fg)}
+  .fb-btn:active .fb-sign,.fb-btn:active .fb-name{color:var(--bg)}
+  .fb-btn.flash{animation:fbFlash .5s ease}
+  @keyframes fbFlash{
+    0%,45%{background:var(--raise);border-color:var(--mid);color:var(--fg)}
+    100%{background:transparent;border-color:var(--faint);color:var(--mid)}
+  }
+  /* Intestazione richiudibile. La taratura resta visibile anche da chiusa:
+     se sposta il risultato di −4, nasconderla renderebbe il numero
+     influenzato da qualcosa di invisibile. */
+  /* ── GRUPPI RICHIUDIBILI (modalità Bar) ──
+     L'intestazione mostra i valori correnti anche da chiusa: senza,
+     richiudere equivarrebbe a nascondere, e per controllare lo stato
+     bisognerebbe riaprire ogni gruppo. */
+  .grp{border-top:1px solid var(--faint)}
+  .grp:last-of-type{border-bottom:1px solid var(--faint);margin-bottom:22px}
+  .grp-head{display:flex;align-items:center;gap:7px;cursor:pointer;
+    user-select:none;-webkit-user-select:none;min-height:46px;padding:4px 0;
+    transition:opacity .15s}
+  .grp-head:hover{opacity:.75}
+  .grp-head:focus-visible{outline:1px solid var(--mid);outline-offset:2px}
+  /* Titolo in osso, riepilogo in grigio: prima erano dello stesso colore
+     e la macro categoria non si distingueva dal proprio contenuto.
+     Stesso criterio applicato ai pulsanti informativi. */
+  .grp-head .lbl{flex-shrink:0;color:var(--fg)}
+  .grp-tail{margin-left:auto;display:flex;align-items:center;gap:9px;
+    color:var(--mid);min-width:0}
+  .grp-sum{font-size:11.5px;color:var(--mid);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .grp-body{padding:2px 0 15px}
+
+  .fb-chev{transition:transform .25s cubic-bezier(.22,1,.36,1);flex-shrink:0}
+  .fb-chev.up{transform:rotate(180deg)}
+
+  /* La taratura è la cosa che PERSISTE, quindi è lei a stare in evidenza.
+     I pulsanti sono azioni che si sommano: non restano accesi, altrimenti
+     sembrano tre caselle da scegliere invece di tre comandi da premere. */
+  /* ── DATI DEL TIRO (solo Bar + espresso) ──
+     Tempo e resa non entrano nel calcolo della grana: sono un esito,
+     non un parametro. Servono a qualificare il feedback sul gusto. */
+  .shot{margin-bottom:16px}
+  /* A due colonne la traccia era larga 66px e la fascia bersaglio 9px:
+     illeggibile. A tutta larghezza la fascia diventa un settore vero,
+     come la corona di un cronografo. Costa spazio solo a gruppo aperto. */
+  .shot-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:2px}
+  .shot-lbl{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--mid);margin-bottom:6px}
+  .shot-diag{font-size:11.5px;color:var(--fg);line-height:1.5;transition:color .3s;
+    margin-top:12px;padding-top:10px;border-top:1px solid var(--faint)}
+
+  .calib-panel{background:var(--panel);border:1px solid var(--faint);
+    border-radius:var(--r);padding:12px 13px 10px;margin-bottom:10px}
+  .calib-head{display:flex;align-items:baseline;gap:11px}
+  .calib-big{font-family:'Fraunces',Georgia,serif;font-size:30px;font-weight:200;
+    color:var(--fg);line-height:1;font-variant-numeric:tabular-nums;
+    transition:color .3s}
+  .calib-cap{font-size:12px;color:var(--mid);flex:1;line-height:1.4;
+    display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .calib-scale{position:relative;height:2px;background:var(--faint);
+    border-radius:2px;margin:12px 0 9px}
+  .calib-tick{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;
+    background:var(--fg);transform:translate(-50%,-50%);
+    transition:left .35s cubic-bezier(.22,1,.36,1)}
+  .calib-scale::before,.calib-scale::after{content:'';position:absolute;top:50%;
+    width:1px;height:8px;background:var(--faint);transform:translateY(-50%)}
+  .calib-scale::before{left:0}
+  .calib-scale::after{right:0}
+  .calib-msg{font-size:11.5px;color:var(--mid);line-height:1.5;min-height:17px}
+
+  .fb-reset{background:none;border:1px solid var(--faint);border-radius:22px;padding:8px 14px;
+    font-size:11.5px;color:var(--mid);cursor:pointer;transition:all .15s;flex-shrink:0}
+  .fb-reset:hover{border-color:var(--fg);color:var(--fg)}
+
+  /* ── CALIBRAZIONE ── */
+  .calib-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .calib-num{font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:100;color:var(--fg);
+    background:transparent;border:none;border-bottom:1px solid var(--faint);width:74px;
+    text-align:center;padding:8px 0;outline:none}
+  .calib-num:focus{border-bottom-color:var(--fg)}
+  .calib-lbl{font-size:12.5px;color:var(--mid)}
+
+  /* ── PIÈ DI PAGINA ── */
+  .foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--faint);
+    display:flex;flex-direction:column;align-items:center;gap:13px;text-align:center}
+  .foot-row{display:flex;align-items:center;gap:10px}
+  .kofi{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+    border:1px solid var(--mid);border-radius:22px;padding:11px 17px;
+    background:var(--raise);color:var(--fg);font-size:12.5px;letter-spacing:.04em;
+    transition:all .2s}
+  .kofi:hover,.kofi:focus-visible{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+  .kofi svg{flex-shrink:0;color:#E5A03C;transition:color .2s}
+  .kofi:hover svg,.kofi:focus-visible svg{color:var(--bg)}
+  .kofi-steam{opacity:0;transform-origin:center bottom}
+  .kofi:hover .kofi-steam{animation:steam 2.2s ease-in-out infinite}
+  @keyframes steam{
+    0%{opacity:0;transform:translateY(2px) scaleY(.8)}
+    35%{opacity:.7}
+    100%{opacity:0;transform:translateY(-5px) scaleY(1.15)}
+  }
+  /* Paternità visibile: è la riga che si cerca per capire di chi è un'app. */
+  /* Tre righe, tre significati, tre livelli di voce: cosa fa l'app,
+     cosa non raccoglie, di chi è. Prima era un blocco unico che andava
+     a capo tre volte, e in un colore da bordi (1,5:1) illeggibile. */
+  .foot-claim{font-size:11px;color:#828179;letter-spacing:0;line-height:1.55;
+    text-align:center}                  /* 4,5:1 */
+  .foot-note{font-size:10.5px;color:#6B6E68;letter-spacing:.01em;line-height:1.55;
+    margin-top:5px;text-align:center}   /* 3,4:1 */
+  /* Il trattino separatore è decorativo e sta in un pseudo-elemento:
+     messo come bordo dell'elemento stesso ne limitava la larghezza e
+     mandava il testo a capo quattro volte. */
+  .foot-copy{font-size:10px;color:#565A5E;letter-spacing:.02em;line-height:1.5;
+    margin-top:13px;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:11px}   /* 2,6:1 */
+  .foot-copy::before{content:"";width:120px;height:1px;background:var(--faint)}
+
+  /* ── INSTALLAZIONE ── */
+  .install-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--panel);border-top:1px solid var(--faint);
+    padding:14px 26px calc(14px + var(--safe-b));
+    display:flex;align-items:center;gap:12px;animation:slideUp .25s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .install-txt{flex:1;font-size:10.5px;color:var(--fg);line-height:1.5}
+  .install-go{background:var(--fg);color:var(--bg);border:none;border-radius:var(--r);
+    padding:10px 15px;font-size:10.5px;letter-spacing:.04em;cursor:pointer;white-space:nowrap}
+  .install-x{background:none;border:none;color:var(--mid);font-size:17px;cursor:pointer;
+    padding:4px 6px;line-height:1}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* Sotto una certa altezza il blocco fisso occuperebbe troppo: il numero
+     si riduce invece di rubare spazio ai controlli. */
+  /* Su schermi bassi il blocco fisso ruberebbe troppa pagina ai controlli. */
+  @media (max-height:700px){
+    :root{--hero-max:56px; --hero-min:28px; --name-max:15px; --name-min:12px}
+  }
+  @media (max-height:600px){
+    :root{--hero-max:46px; --hero-min:26px}
+    .brand{font-size:22px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+<div id="root" class="app"></div>
+<div id="live" class="sr-only" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
