@@ -1,51 +1,10 @@
-MACININO — app web autonoma
+MACININO, app web autonoma
 ============================
 
 COS'È
 Un calcolatore della macinatura del caffè che gira interamente nel browser.
 Nessun account, nessun pagamento, nessuna chiamata di rete: dopo la prima
 apertura funziona anche senza connessione.
-
-
-PUBBLICARE SU VERCEL
---------------------
-Opzione A — trascinamento (la più veloce, nessun account Git richiesto):
-  1. Vai su vercel.com/new
-  2. Trascina questa CARTELLA nel riquadro di caricamento
-     (la cartella intera, non i singoli file)
-  3. Deploy. Fine: ottieni un indirizzo tipo macinino.vercel.app
-
-Opzione B — da riga di comando:
-  1. npm i -g vercel
-  2. Dentro questa cartella:  vercel
-  3. Per la versione definitiva:  vercel --prod
-
-Opzione C — collegata a GitHub (consigliata se prevedi aggiornamenti):
-  1. Crea un repository e carica questi file nella radice
-  2. Su Vercel: Add New -> Project -> importa il repository
-  3. Framework Preset: "Other". Nessun comando di build, nessuna cartella
-     di output: sono file statici, Vercel li serve così come sono.
-  4. Da lì in poi ogni push aggiorna il sito da solo.
-
-IMPORTANTE: i file devono stare nella RADICE del progetto, non dentro una
-sottocartella. Se carichi la cartella "macinino" e vedi una pagina bianca,
-è quasi sempre questo il motivo.
-
-Vercel fornisce HTTPS in automatico: è indispensabile, senza HTTPS il
-service worker non si attiva e l'app non funziona offline.
-
-
-DOMINIO PERSONALIZZATO
-Nel pannello Vercel: Project -> Settings -> Domains. Se colleghi un
-dominio tuo, l'app continua a funzionare senza modifiche ai file
-(i percorsi sono tutti relativi).
-
-
-AGGIORNAMENTI
-Quando modifichi i file, cambia il numero di versione in sw.js
-(la costante CACHE, es. da "macinino-v1" a "macinino-v2") PRIMA di
-ripubblicare. Senza questo passaggio chi ha già aperto l'app continua
-a vedere la versione vecchia dalla cache del proprio dispositivo.
 
 
 STRUTTURA
@@ -60,15 +19,11 @@ STRUTTURA
 
 
 INSTALLAZIONE SUL TELEFONO
-Android/Chrome: compare in automatico una barra "Installa".
-iOS/Safari: Condividi -> Aggiungi alla schermata Home.
+Android, Chrome: compare in automatico una barra "Installa".
+iOS, Safari: Condividi, poi Aggiungi alla schermata Home.
 In entrambi i casi si apre a schermo intero, senza barra del browser.
 
 
 DOVE SONO SALVATI I DATI
 Solo sul dispositivo, in localStorage. Non vengono mai inviati da nessuna
 parte. Cancellando i dati del sito si azzera tutto.
-
-
-DONAZIONI
-Il pulsante in fondo rimanda a https://ko-fi.com/istantelabs/tip
