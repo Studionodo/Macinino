@@ -6,7 +6,13 @@
 <title>Macinino — Privacy</title>
 <meta name="theme-color" content="#16181B">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Geist+Mono:wght@300;400&display=swap');
+  /* Font locali, non da CDN: questa pagina promette che nessun dato lascia
+     il dispositivo, e una chiamata a Google la smentirebbe nel momento stesso
+     in cui viene letta. */
+  @font-face{font-family:'Fraunces';font-style:normal;font-weight:100 900;font-display:swap;
+    src:url('fonts/fraunces.woff2') format('woff2');}
+  @font-face{font-family:'Geist Mono';font-style:normal;font-weight:300 500;font-display:swap;
+    src:url('fonts/geist-mono.woff2') format('woff2');}
   *{box-sizing:border-box;margin:0;padding:0}
   :root{--bg:#16181B;--fg:#EDE9E1;--mid:#918F87;--faint:#33373C}
   body{background:var(--bg);color:var(--fg);font-family:'Geist Mono',monospace;

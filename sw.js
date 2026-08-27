@@ -13,12 +13,12 @@
 
    ⚠️  ALZARE QUESTO NUMERO A OGNI PUBBLICAZIONE.
    Senza, chi ha già aperto l'app continua a vedere la versione vecchia. */
-const CACHE = "macinino-v47";
+const CACHE = "macinino-v50";
 
 const ASSETS = [
   "./", "./index.html", "./app.js", "./manifest.webmanifest",
   "./icon.svg", "./icon-192.png", "./icon-512.png",
-  "./icon-maskable-512.png", "./LICENSE", "./icon-180.png",
+  "./LICENSE", "./icon-180.png",
   "./fonts/fraunces.woff2", "./fonts/fraunces-italic.woff2", "./fonts/geist-mono.woff2",
 ];
 

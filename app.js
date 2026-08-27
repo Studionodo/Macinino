@@ -974,7 +974,7 @@ function onboarding(t){
         <div class="onb-mark">Macinino<svg width="17" height="17" viewBox="0 0 64 64" aria-hidden="true">
           <g transform="rotate(40 32 32)">
             <ellipse cx="32" cy="32" rx="18.7" ry="26.7" fill="#E5A03C"/>
-            <path d="M32 8.5Q23.5 32 32 55.5" stroke="#16181B" stroke-width="5.6" fill="none" stroke-linecap="round"/>
+            <path d="M32 8.5Q23.5 32 32 55.5" stroke="#16181B" stroke-width="4.2" fill="none" stroke-linecap="round"/>
           </g>
         </svg></div>
         <div class="lang-pill">
@@ -1063,7 +1063,7 @@ function render(){
       <span class="brand">Macinino<svg class="brand-mark" width="17" height="17" viewBox="0 0 64 64" aria-hidden="true">
         <g transform="rotate(40 32 32)">
           <ellipse cx="32" cy="32" rx="18.7" ry="26.7" fill="${color}"/>
-          <path d="M32 8.5Q23.5 32 32 55.5" stroke="#16181B" stroke-width="5.6" fill="none" stroke-linecap="round"/>
+          <path d="M32 8.5Q23.5 32 32 55.5" stroke="#16181B" stroke-width="4.2" fill="none" stroke-linecap="round"/>
         </g>
       </svg></span>
       <span class="brand-sub">${esc(t.tagline)}</span>
@@ -1266,7 +1266,7 @@ function render(){
     </div>
     <div class="foot-claim">${esc(t.footClaim)}</div>
     <div class="foot-note">${esc(t.footNote)}</div>
-    <div class="foot-copy">© 2026 Studionodo · ${esc(t.rights)}</div>
+    <div class="foot-copy">© 2026 Studionodo · ${esc(t.rights)} · <a class="foot-link" href="https://github.com/Studionodo" target="_blank" rel="noopener noreferrer">GitHub</a></div>
   </div>`;
 
   const root=document.getElementById("root");

@@ -510,6 +510,12 @@
     margin-top:13px;text-align:center;
     display:flex;flex-direction:column;align-items:center;gap:11px}   /* 2,6:1 */
   .foot-copy::before{content:"";width:120px;height:1px;background:var(--faint)}
+  /* Il link segue lo stesso principio del resto del piè di pagina: leggibile
+     ma discreto, non un invito a cliccare. Sottolineato solo, nessun colore
+     acceso che lo faccia sembrare un'azione da compiere. */
+  .foot-link{color:#565A5E;text-decoration:underline;text-underline-offset:2px;
+    text-decoration-color:var(--faint)}
+  .foot-link:active{color:var(--mid)}
 
   /* ── INSTALLAZIONE ── */
   .install-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;
