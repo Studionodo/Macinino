@@ -14,10 +14,10 @@ Alla prima estrazione con un metodo, l'app non inventa nulla: ti chiede solo che
 
 ## Come funziona
 
-- **Tredici parametri verificati su fonti**, come metodo, tostatura, giorni dalla tostatura, lavorazione del chicco, pressione, acqua e umidità, combinati in un algoritmo che stima quanto sposta la macinatura ogni fattore
+- **Tredici parametri verificati su fonti**, come metodo, tostatura, giorni dalla tostatura, lavorazione del chicco, pressione, acqua e aria, combinati in un algoritmo che stima quanto sposta la macinatura ogni fattore
 - **Impara dal feedback.** Rispondi *acido*, *perfetto* o *amaro* dopo ogni caffè, e l'app corregge sia la posizione sia quanto è ampio un passo sul tuo macinino specifico
 - **Diagnosi del tempo di estrazione.** Se il tempo e il gusto si contraddicono (per esempio veloce e amaro insieme), l'app riconosce la canalizzazione invece di consigliare una correzione sbagliata
-- **Due modalità.** *Casa* chiede solo ciò che chiunque sa guardando il sacchetto; *Bar* aggiunge i parametri professionali: pressione, dose, temperatura dell'acqua, durezza
+- **Una sola schermata.** Metodo, numero, feedback; il resto (tostatura, giorni, aria, e per chi vuole pressione, dose, acqua) sta in due sezioni da aprire solo se serve
 
 ## Caratteristiche tecniche
 
@@ -55,10 +55,10 @@ The first time you use a method, the app doesn't guess — it simply asks what s
 
 ### How it works
 
-- **Thirteen parameters checked against sources** — method, roast, days since roasting, processing, pressure, water, humidity and more — combined into an algorithm that estimates how much each factor shifts the grind
+- **Thirteen parameters checked against sources** — method, roast, days since roasting, processing, pressure, water, air and more — combined into an algorithm that estimates how much each factor shifts the grind
 - **Learns from your feedback.** Answer *sour*, *perfect* or *bitter* after each brew, and the app corrects both the position and how big a step is on your specific grinder
 - **Extraction-time diagnosis.** When time and taste disagree (fast and bitter together, for instance), the app recognises channelling instead of suggesting the wrong fix
-- **Two modes.** *Home* asks only what anyone can read off the bag; *Bar* adds professional parameters — pressure, dose, water temperature, hardness
+- **One screen.** Method, number, feedback; the rest (roast, days, air, and for those who want it pressure, dose, water) lives in two sections you open only when needed
 
 ### Technical details
 

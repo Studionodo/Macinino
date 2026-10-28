@@ -13,18 +13,18 @@
 
    ⚠️  ALZARE QUESTO NUMERO A OGNI PUBBLICAZIONE.
    Senza, chi ha già aperto l'app continua a vedere la versione vecchia. */
-const CACHE = "macinino-v50";
+const CACHE = "macinino-v51";
 
 const ASSETS = [
   "./", "./index.html", "./app.js", "./manifest.webmanifest",
   "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./LICENSE", "./icon-180.png",
-  "./fonts/fraunces.woff2", "./fonts/fraunces-italic.woff2", "./fonts/geist-mono.woff2",
+  "./fonts/fraunces.woff2",
 ];
 
 /* Pagine statiche che NON devono essere dirottate sull'app.
    Aggiungi qui ogni nuova pagina (es. "/privacy.html"). */
-const STANDALONE_PAGES = ["/privacy.html", "/termini.html", "/LICENSE"];
+const STANDALONE_PAGES = ["/privacy.html", "/LICENSE"];
 
 /* Risposta di ripiego sempre valida: respondWith() non deve mai
    ricevere undefined, altrimenti il worker va in crash silenzioso
